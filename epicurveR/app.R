@@ -8,18 +8,20 @@
 #
 
 library(shiny)
+library(ggplot2)
+library(plotly)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    
    # Application title
-   titlePanel("Old Faithful Geyser Data"),
+   titlePanel("Epicurve"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-         sliderInput("bins",
-                     "Number of bins:",
+         sliderInput("days",
+                     "Number of days:",
                      min = 1,
                      max = 50,
                      value = 30)
@@ -27,7 +29,7 @@ ui <- fluidPage(
       
       # Show a plot of the generated distribution
       mainPanel(
-         plotOutput("distPlot")
+         plotlyOutput("distPlot")
       )
    )
 )
@@ -35,13 +37,29 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
    
-   output$distPlot <- renderPlot({
+  count2list <- reactive({
+    counts <- round(faithful[, 2][1:input$days]/10)
+    rowList <- data.frame()
+    for(i in 1:length(counts)){
+      for(j in 1:counts[i]){
+        rowList <- dplyr::bind_rows(rowList,c(x=i,y=j))
+      }
+    }
+    return(rowList)
+  })
+  
+   output$distPlot <- renderPlotly({
       # generate bins based on input$bins from ui.R
-      x    <- faithful[, 2] 
-      bins <- seq(min(x), max(x), length.out = input$bins + 1)
       
-      # draw the histogram with the specified number of bins
-      hist(x, breaks = bins, col = 'darkgray', border = 'white')
+      # bins <- seq(min(x), max(x), length.out = input$bins + 1)
+      # 
+      # # draw the histogram with the specified number of bins
+      # hist(x, breaks = bins, col = 'darkgray', border = 'white')
+      
+      data <- count2list()
+      
+      ggplotly(ggplot(data) + geom_tile(aes(x=x, y=y, fill=y), width=0.9, height=0.9) + theme_minimal())
+      #plot_ly(data = data, x=~x,y=~y,z=~y type = "heatmap",)
    })
 }
 
