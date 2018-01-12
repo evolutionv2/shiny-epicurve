@@ -24,18 +24,39 @@ ui <- fluidPage(
                      "Number of days:",
                      min = 1,
                      max = 50,
-                     value = 30)
+                     value = 30),
+         textAreaInput("caption", h3("Text input"), 
+                   value = "Enter text...") 
       ),
       
       # Show a plot of the generated distribution
       mainPanel(
-         plotlyOutput("distPlot")
+         plotlyOutput("distPlot"),
+         plotOutput("epicurve"),
+         tableOutput("value")
       )
    )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+  
+  text2table <- reactive({
+    table <- input$caption
+    tlist <- lapply(strsplit(table,split="\n"), function(x) strsplit(x, split="\t"))[[1]]
+    df <- data.frame(matrix(unlist(tlist), nrow=length(tlist), byrow=T),stringsAsFactors=FALSE)
+    colnames(df) <- df[1,]
+    df[-1,]
+  })
+  
+  output$value <- renderTable({ 
+    text2table()
+    
+    })
+  
+  output$epicurve <- renderPlot({
+    ggplot(text2table()) + geom_tile(aes(x=Datum, y=was, color=nochwas))
+  })
    
   count2list <- reactive({
     counts <- round(faithful[, 2][1:input$days]/10)
